@@ -3,11 +3,14 @@ import { useState } from "react";
 import { usePromise } from "@raycast/utils";
 
 const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const colorArray = ["#FF000040", "#00D6FF40", "#FF00D240", "#FFC70040", "#3cff0040"];
+const strokeColorArray = ["#FF0000", "#00D6FF", "#FF00D2", "#FFC700", "#3BFF00"];
 
 type BaseSize = 5 | 8;
 
 type SvgProps = {
   size: number;
+  padding?: number;
   bgColor?: string;
   x?: number;
   y?: number;
@@ -22,29 +25,59 @@ type SvgItem = {
   previewSvg: string;
 };
 
+// Function to create the SVG string
 const createSvgString = ({
   size,
-  bgColor = "red",
+  padding = 0,
+  bgColor = "white",
   x = 0,
   y = 0,
   color = "pink",
   strokeColor = "red",
-  strokeWidth = 1,
+  strokeWidth = size <= 24 ? 1 : 4,
 }: SvgProps): string => {
+  const paddedSize = size + padding * 2;
   const fontSize = size <= 32 ? size / 2 : Math.max(16, size / 4);
-  const textX = size * 0.5;
-  const textY = size * 0.5; // Adjusted for vertical alignment to be exactly in the middle
+  const textX = paddedSize * 0.5;
+  const textY = paddedSize * 0.5;
+
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" style="background-color: ${bgColor}">
-  <rect x="${x}" y="${y}" width="${size - x * 2}" height="${size - y * 2}" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
+<svg xmlns="http://www.w3.org/2000/svg" width="${paddedSize}" height="${paddedSize}" style="background-color: ${bgColor}">
+  <rect x="${padding + x}" y="${padding + y}" width="${size - x * 2}" height="${size - y * 2}" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
   <text x="${textX}" y="${textY}" dominant-baseline="middle" text-anchor="middle" font-family="arial" font-size="${fontSize}" fill="black">${size}</text>
 </svg>`;
 };
 
-const generateSvgGrid = (baseSize: number, scaleArray: number[]): string[] => {
-  return scaleArray.map((scale) => createSvgString({ size: baseSize * scale }));
+// Generates raw and padded SVG strings based on the provided colors
+const generateSvgGrid = (
+  baseSize: number,
+  scaleArray: number[],
+  multicolored: boolean,
+): { raw: string[]; padded: string[] } => {
+  const colorFunc = (index: number) => (multicolored ? colorArray[index % 5] : "pink");
+  const strokeColorFunc = (index: number) => (multicolored ? strokeColorArray[index % 5] : "red");
+
+  const rawSvgStrings = scaleArray.map((scale, index) =>
+    createSvgString({
+      size: baseSize * scale,
+      color: colorFunc(index),
+      strokeColor: strokeColorFunc(index),
+    }),
+  );
+
+  const paddedSvgStrings = scaleArray.map((scale, index) =>
+    createSvgString({
+      size: baseSize * scale,
+      padding: baseSize * scale * 0.3,
+      color: colorFunc(index),
+      strokeColor: strokeColorFunc(index),
+    }),
+  );
+
+  return { raw: rawSvgStrings, padded: paddedSvgStrings };
 };
 
+// Copy SVG string to the clipboard
 const copySvgToClipboard = async (svg: string): Promise<void> => {
   try {
     await Clipboard.copy(svg);
@@ -55,25 +88,28 @@ const copySvgToClipboard = async (svg: string): Promise<void> => {
   }
 };
 
+// Base64 encode SVG string for Raycast preview
 const encodeSvgToBase64 = (svg: string): string => {
   return `data:image/svg+xml;base64,${btoa(svg)}`;
 };
 
-const createSvgItems = (svgStrings: string[]): SvgItem[] => {
-  return svgStrings.map((svg, index) => ({
+// Create array of SVG items from raw and padded SVG strings
+const createSvgItems = (rawSvgStrings: string[], paddedSvgStrings: string[]): SvgItem[] => {
+  return rawSvgStrings.map((svg, index) => ({
     id: index,
     rawSvg: svg,
-    previewSvg: encodeSvgToBase64(svg),
+    previewSvg: encodeSvgToBase64(paddedSvgStrings[index]),
   }));
 };
 
 export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
+  const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
 
   const { isLoading, data } = usePromise(() => {
-    const svgStrings = generateSvgGrid(baseSize, gridScale);
-    return Promise.resolve(createSvgItems(svgStrings));
-  }, [baseSize]);
+    const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
+    return Promise.resolve(createSvgItems(raw, padded));
+  }, [baseSize, isMulticolored]);
 
   return (
     <Grid
@@ -86,8 +122,8 @@ export default function Command() {
           onChange={(newValue) => setBaseSize(Number(newValue) as BaseSize)}
         >
           <Grid.Dropdown.Section title="Grid Sizes">
-            <Grid.Dropdown.Item title="8 Point Grid" value="8" />
-            <Grid.Dropdown.Item title="5 Point Grid" value="5" />
+            <Grid.Dropdown.Item title="8 Point Grid" value="8" key="8" />
+            <Grid.Dropdown.Item title="5 Point Grid" value="5" key="5" />
           </Grid.Dropdown.Section>
         </Grid.Dropdown>
       }
@@ -100,6 +136,11 @@ export default function Command() {
           actions={
             <ActionPanel>
               <Action title="Copy SVG" onAction={() => copySvgToClipboard(item.rawSvg)} />
+              <Action
+                shortcut={{ modifiers: ["cmd"], key: "t" }}
+                title={`Switch to ${isMulticolored ? "Monocolored" : "Multicolored"}`}
+                onAction={() => setIsMulticolored((prev) => !prev)}
+              />
             </ActionPanel>
           }
         />
