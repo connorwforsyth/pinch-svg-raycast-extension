@@ -110,11 +110,8 @@ export default function Command() {
     },
     [],
   );
-  // bug here with usePromise when building
-  const { isLoading, data, revalidate } = usePromise(
-    () => fetchSvgItems(baseSize, gridScale, isMulticolored),
-    [baseSize, gridScale, isMulticolored],
-  );
+
+  const { isLoading, data, revalidate } = usePromise(() => fetchSvgItems(baseSize, gridScale, isMulticolored), []);
 
   return (
     <Grid
@@ -124,7 +121,10 @@ export default function Command() {
           tooltip="Select base grid size"
           storeValue={true}
           defaultValue={String(baseSize)}
-          onChange={(newValue) => setBaseSize(Number(newValue) as BaseSize)}
+          onChange={(newValue) => {
+            setBaseSize(Number(newValue) as BaseSize);
+            revalidate();
+          }}
         >
           <Grid.Dropdown.Section title="Grid Sizes">
             <Grid.Dropdown.Item title="8 Point Grid" value="8" key="8" />
