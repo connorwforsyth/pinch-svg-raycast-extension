@@ -16,7 +16,6 @@ type SvgProps = {
   color?: string;
   strokeColor?: string;
   strokeWidth?: number;
-  // textYOffset?: boolean;
 };
 
 type SvgItem = {
@@ -79,7 +78,7 @@ const generateSvgGrid = (
 };
 
 const encodeSvgToBase64 = (svg: string): string => {
-  return `data:image/svg+xml;base64,${btoa(decodeURIComponent(encodeURIComponent(svg)))}`;
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
 };
 
 const createSvgItems = (rawSvgStrings: string[], paddedSvgStrings: string[]): SvgItem[] => {
@@ -104,13 +103,12 @@ export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
   const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
 
-  // Define the data-generating function using useCallback
   const fetchSvgItems = useCallback((): Promise<SvgItem[]> => {
     const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
     return Promise.resolve(createSvgItems(raw, padded));
   }, [baseSize, isMulticolored]);
 
-  const { isLoading, data } = usePromise(fetchSvgItems, []);
+  const { isLoading, data, revalidate } = usePromise(fetchSvgItems, [baseSize, isMulticolored]);
 
   return (
     <Grid
@@ -140,7 +138,10 @@ export default function Command() {
               <Action
                 shortcut={{ modifiers: ["cmd"], key: "t" }}
                 title={`Switch to ${isMulticolored ? "Monocolored" : "Multicolored"}`}
-                onAction={() => setIsMulticolored((prev) => !prev)}
+                onAction={() => {
+                  setIsMulticolored((prev) => !prev);
+                  revalidate();
+                }}
               />
             </ActionPanel>
           }
