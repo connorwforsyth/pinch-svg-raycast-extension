@@ -110,7 +110,7 @@ export default function Command() {
     },
     [],
   );
-  // bug here
+  // bug here with usePromise when building
   const { isLoading, data, revalidate } = usePromise(
     () => fetchSvgItems(baseSize, gridScale, isMulticolored),
     [baseSize, gridScale, isMulticolored],
