@@ -2,82 +2,106 @@ import { Grid, Clipboard, showHUD, ActionPanel, Action } from "@raycast/api";
 import { useState } from "react";
 import { usePromise } from "@raycast/utils";
 
-const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64];
 const colorArray = ["#FF000040", "#00D6FF40", "#FF00D240", "#FFC70040", "#3cff0040"];
 const strokeColorArray = ["#FF0000", "#00D6FF", "#FF00D2", "#FFC700", "#3BFF00"];
 
 type BaseSize = 5 | 8;
 
 type SvgProps = {
-  size: number;
-  padding?: number;
-  bgColor?: string;
   x?: number;
   y?: number;
+  size: number;
+  padding?: number;
   color?: string;
   strokeColor?: string;
   strokeWidth?: number;
+  textYOffset?: boolean;
 };
 
 type SvgItem = {
-  id: number;
-  rawSvg: string;
-  previewSvg: string;
+  id: number; // For reference
+  size?: number; // for size referencing
+  rawSvg: string; // To be copied
+  previewSvg: string; // For Raycast preview
 };
 
-// Function to create the SVG string
 const createSvgString = ({
   size,
-  padding = 0,
-  bgColor = "white",
+  strokeWidth = size <= 24 ? 1 : 4,
   x = 0,
+  textYOffset,
   y = 0,
+  padding = 0,
   color = "pink",
   strokeColor = "red",
-  strokeWidth = size <= 24 ? 1 : 4,
 }: SvgProps): string => {
+  // Is padded size necessary?
   const paddedSize = size + padding * 2;
+
   const fontSize = size <= 32 ? size / 2 : Math.max(16, size / 4);
+
   const textX = paddedSize * 0.5;
-  const textY = paddedSize * 0.5;
+  const textY = paddedSize * 0.5 + fontSize * 0.5;
+
+  //   This is to fix the text positioning within the preview pane. Update -- it seems to have been another bug that has since been fixed up... let's see if it's required.
+  //textYOffset ? paddedSize * 0.5 + fontSize * 0.5 : paddedSize * 0.5;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${paddedSize}" height="${paddedSize}" style="background-color: ${bgColor}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${paddedSize}" height="${paddedSize}">
+  <rect id="whiteBg" x="${padding + x}" y="${padding + y}" width="${size - x * 2}" height="${size - y * 2}" fill="white"/>
   <rect x="${padding + x}" y="${padding + y}" width="${size - x * 2}" height="${size - y * 2}" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
-  <text x="${textX}" y="${textY}" dominant-baseline="middle" text-anchor="middle" font-family="arial" font-size="${fontSize}" fill="black">${size}</text>
+  <!--There are some issues with the text positioning within the preview pane. -->
+  <text x="${textX}" y="${textY}" dominant-baseline="center" text-anchor="middle" font-family="arial" font-size="${fontSize}" fill="black">${size}</text>
 </svg>`;
 };
 
-// Generates raw and padded SVG strings based on the provided colors
 const generateSvgGrid = (
   baseSize: number,
   scaleArray: number[],
   multicolored: boolean,
 ): { raw: string[]; padded: string[] } => {
-  const colorFunc = (index: number) => (multicolored ? colorArray[index % 5] : "pink");
-  const strokeColorFunc = (index: number) => (multicolored ? strokeColorArray[index % 5] : "red");
+  // Setting the colors based on theme.
+  const setBoxColor = (index: number) => (multicolored ? colorArray[index % 5] : "FF000040");
+  const setStrokeColor = (index: number) => (multicolored ? strokeColorArray[index % 5] : "FF0000");
 
-  const rawSvgStrings = scaleArray.map((scale, index) =>
+  const rawSvgString = scaleArray.map((scale, index) =>
     createSvgString({
       size: baseSize * scale,
-      color: colorFunc(index),
-      strokeColor: strokeColorFunc(index),
+      color: setBoxColor(index),
+      strokeColor: setStrokeColor(index),
+      textYOffset: false,
     }),
   );
 
-  const paddedSvgStrings = scaleArray.map((scale, index) =>
-    createSvgString({
-      size: baseSize * scale,
-      padding: baseSize * scale * 0.3,
-      color: colorFunc(index),
-      strokeColor: strokeColorFunc(index),
-    }),
-  );
+  //   This is for the Raycast prevew
+  const raycastSvgPreview = scaleArray.map((scale, index) => {
+    const size = baseSize * scale;
+    return createSvgString({
+      size,
+      padding: size * 0.3,
+      color: setBoxColor(index),
+      strokeColor: setStrokeColor(index),
+      textYOffset: true,
+    });
+  });
 
-  return { raw: rawSvgStrings, padded: paddedSvgStrings };
+  return { raw: rawSvgString, padded: raycastSvgPreview };
 };
 
-// Copy SVG string to the clipboard
+// Create preview image within Raycast
+const encodeSvgToBase64 = (svg: string): string => {
+  return `data:image/svg+xml;base64,${btoa(svg)}`;
+};
+
+const createSvgItems = (rawSvgStrings: string[], paddedSvgStrings: string[]): SvgItem[] => {
+  return rawSvgStrings.map((svg, index) => ({
+    id: index,
+    rawSvg: svg,
+    previewSvg: encodeSvgToBase64(paddedSvgStrings[index]),
+  }));
+};
+
 const copySvgToClipboard = async (svg: string): Promise<void> => {
   try {
     await Clipboard.copy(svg);
@@ -88,24 +112,9 @@ const copySvgToClipboard = async (svg: string): Promise<void> => {
   }
 };
 
-// Base64 encode SVG string for Raycast preview
-const encodeSvgToBase64 = (svg: string): string => {
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
-};
-
-// Create array of SVG items from raw and padded SVG strings
-const createSvgItems = (rawSvgStrings: string[], paddedSvgStrings: string[]): SvgItem[] => {
-  return rawSvgStrings.map((svg, index) => ({
-    id: index,
-    rawSvg: svg,
-    previewSvg: encodeSvgToBase64(paddedSvgStrings[index]),
-  }));
-};
-
 export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
   const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
-
   const { isLoading, data } = usePromise(() => {
     const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
     return Promise.resolve(createSvgItems(raw, padded));
@@ -116,7 +125,7 @@ export default function Command() {
       isLoading={isLoading}
       searchBarAccessory={
         <Grid.Dropdown
-          tooltip="Select Grid Size"
+          tooltip="Select base grid size"
           storeValue={true}
           defaultValue={String(baseSize)}
           onChange={(newValue) => setBaseSize(Number(newValue) as BaseSize)}
