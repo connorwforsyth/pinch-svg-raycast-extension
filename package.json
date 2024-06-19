@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "pinch-svg",
-  "title": "Pinch SVG",
-  "description": "Generate and copy SVGs rectangles in a pinch for pixel size references.",
+  "name": "svg-spacing",
+  "title": "SVG Spacing",
+  "description": "Generate and copy SVGs rectangles for spacing references.",
   "icon": "extension_icon.png",
   "author": "connorforsyth",
   "categories": [
@@ -13,12 +13,19 @@
     {
       "name": "index",
       "title": "Create SVG Rectangle",
-      "description": "Template for showing a static grid",
+      "description": "Create SVG Rectangle based on pixel values.",
+      "mode": "view"
+    },
+    {
+      "name": "grid",
+      "title": "Copy SVG Grid Spacing",
+      "description": "Copy selectable SVGs at different sizes, based on an 8px grid system.",
       "mode": "view"
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.75.2"
+    "@raycast/api": "^1.75.2",
+    "@raycast/utils": "^1.16.0"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.6",
