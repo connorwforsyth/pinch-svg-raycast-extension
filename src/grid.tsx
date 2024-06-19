@@ -103,12 +103,18 @@ export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
   const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
 
-  const fetchSvgItems = useCallback((): Promise<SvgItem[]> => {
-    const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
-    return Promise.resolve(createSvgItems(raw, padded));
-  }, [baseSize, isMulticolored]);
-
-  const { isLoading, data, revalidate } = usePromise(fetchSvgItems, [baseSize, isMulticolored]);
+  const fetchSvgItems = useCallback(
+    (baseSize: BaseSize, gridScale: number[], isMulticolored: boolean): Promise<SvgItem[]> => {
+      const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
+      return Promise.resolve(createSvgItems(raw, padded));
+    },
+    [],
+  );
+  // bug here
+  const { isLoading, data, revalidate } = usePromise(
+    () => fetchSvgItems(baseSize, gridScale, isMulticolored),
+    [baseSize, gridScale, isMulticolored],
+  );
 
   return (
     <Grid
