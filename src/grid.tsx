@@ -1,5 +1,5 @@
 import { Grid, Clipboard, showHUD, ActionPanel, Action } from "@raycast/api";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { usePromise } from "@raycast/utils";
 
 const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64];
@@ -103,13 +103,14 @@ export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
   const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
 
-  const fetchSvgItems = useCallback(
-    (baseSize: BaseSize, gridScale: number[], isMulticolored: boolean): Promise<SvgItem[]> => {
-      const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
-      return Promise.resolve(createSvgItems(raw, padded));
-    },
-    [],
-  );
+  const fetchSvgItems = async (
+    baseSize: BaseSize,
+    gridScale: number[],
+    isMulticolored: boolean,
+  ): Promise<SvgItem[]> => {
+    const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
+    return Promise.resolve(createSvgItems(raw, padded));
+  };
 
   const { isLoading, data, revalidate } = usePromise(() => fetchSvgItems(baseSize, gridScale, isMulticolored), []);
 
