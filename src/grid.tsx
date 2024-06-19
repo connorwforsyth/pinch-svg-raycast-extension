@@ -1,5 +1,5 @@
 import { Grid, Clipboard, showHUD, ActionPanel, Action } from "@raycast/api";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { usePromise } from "@raycast/utils";
 
 const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64];
@@ -20,10 +20,10 @@ type SvgProps = {
 };
 
 type SvgItem = {
-  id: number; // For reference
-  size?: number; // for size referencing
-  rawSvg: string; // To be copied
-  previewSvg: string; // For Raycast preview
+  id: number;
+  size?: number;
+  rawSvg: string;
+  previewSvg: string;
 };
 
 const createSvgString = ({
@@ -36,22 +36,15 @@ const createSvgString = ({
   color = "pink",
   strokeColor = "red",
 }: SvgProps): string => {
-  // Is padded size necessary?
   const paddedSize = size + padding * 2;
-
   const fontSize = size <= 32 ? size / 2 : Math.max(16, size / 4);
-
   const textX = paddedSize * 0.5;
   const textY = paddedSize * 0.5 + fontSize * 0.5;
-
-  //   This is to fix the text positioning within the preview pane. Update -- it seems to have been another bug that has since been fixed up... let's see if it's required.
-  //textYOffset ? paddedSize * 0.5 + fontSize * 0.5 : paddedSize * 0.5;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${paddedSize}" height="${paddedSize}">
   <rect id="whiteBg" x="${padding + x}" y="${padding + y}" width="${size - x * 2}" height="${size - y * 2}" fill="white"/>
   <rect x="${padding + x}" y="${padding + y}" width="${size - x * 2}" height="${size - y * 2}" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
-  <!--There are some issues with the text positioning within the preview pane. -->
   <text x="${textX}" y="${textY}" dominant-baseline="center" text-anchor="middle" font-family="arial" font-size="${fontSize}" fill="black">${size}</text>
 </svg>`;
 };
@@ -61,9 +54,9 @@ const generateSvgGrid = (
   scaleArray: number[],
   multicolored: boolean,
 ): { raw: string[]; padded: string[] } => {
-  // Setting the colors based on theme.
-  const setBoxColor = (index: number) => (multicolored ? colorArray[index % 5] : "FF000040");
-  const setStrokeColor = (index: number) => (multicolored ? strokeColorArray[index % 5] : "FF0000");
+  const setBoxColor = (index: number) => (multicolored ? colorArray[index % colorArray.length] : "#FF000040");
+  const setStrokeColor = (index: number) =>
+    multicolored ? strokeColorArray[index % strokeColorArray.length] : "#FF0000";
 
   const rawSvgString = scaleArray.map((scale, index) =>
     createSvgString({
@@ -74,7 +67,6 @@ const generateSvgGrid = (
     }),
   );
 
-  //   This is for the Raycast prevew
   const raycastSvgPreview = scaleArray.map((scale, index) => {
     const size = baseSize * scale;
     return createSvgString({
@@ -89,9 +81,8 @@ const generateSvgGrid = (
   return { raw: rawSvgString, padded: raycastSvgPreview };
 };
 
-// Create preview image within Raycast
 const encodeSvgToBase64 = (svg: string): string => {
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  return `data:image/svg+xml;base64,${btoa(decodeURIComponent(encodeURIComponent(svg)))}`;
 };
 
 const createSvgItems = (rawSvgStrings: string[], paddedSvgStrings: string[]): SvgItem[] => {
@@ -115,10 +106,14 @@ const copySvgToClipboard = async (svg: string): Promise<void> => {
 export default function Command() {
   const [baseSize, setBaseSize] = useState<BaseSize>(8);
   const [isMulticolored, setIsMulticolored] = useState<boolean>(true);
-  const { isLoading, data } = usePromise(() => {
+
+  // Define the data-generating function using useCallback
+  const fetchSvgItems = useCallback((): Promise<SvgItem[]> => {
     const { raw, padded } = generateSvgGrid(baseSize, gridScale, isMulticolored);
     return Promise.resolve(createSvgItems(raw, padded));
   }, [baseSize, isMulticolored]);
+
+  const { isLoading, data } = usePromise(fetchSvgItems, []);
 
   return (
     <Grid

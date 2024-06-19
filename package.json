@@ -18,7 +18,7 @@
     },
     {
       "name": "grid",
-      "title": "Copy SVG Grid Spacing",
+      "title": "Copy SVG Spacing Reference",
       "description": "Copy selectable SVGs at different sizes, based on an 8px grid system.",
       "mode": "view"
     }
