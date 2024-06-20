@@ -8,6 +8,10 @@
 - [x] Create a theme toggle with options for color/hue selection.
 - [x] Create a toggle to change the grid system from 8 pts to another value, e.g., 5 pts.
 
+### Next
+
+- [ ] Improve some of the language within the extension, leveraging [this article as a resource](https://www.designsystems.com/space-grids-and-layouts/#:~:text=You%E2%80%99ll%20see%204pt%2C%205pt%2C%206pt%2C%208pt%2C%2010pt%20increment%20systems.).
+
 ### Launch Two.
 
 - [ ] Enable copying as HTML/CSS in addition to SVG.
