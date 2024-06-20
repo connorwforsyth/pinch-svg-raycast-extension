@@ -1,5 +1,5 @@
 import { Grid, Clipboard, showHUD, ActionPanel, Action } from "@raycast/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePromise } from "@raycast/utils";
 
 const gridScale = [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 32, 64];
@@ -112,7 +112,12 @@ export default function Command() {
     return Promise.resolve(createSvgItems(raw, padded));
   };
 
-  const { isLoading, data, revalidate } = usePromise(() => fetchSvgItems(baseSize, gridScale, isMulticolored), []);
+  const { isLoading, data, revalidate } = usePromise(() => fetchSvgItems(baseSize, gridScale, isMulticolored));
+
+  // Use useEffect to trigger revalidation when baseSize or isMulticolored changes
+  useEffect(() => {
+    revalidate();
+  }, [baseSize, isMulticolored]);
 
   return (
     <Grid
@@ -124,7 +129,6 @@ export default function Command() {
           defaultValue={String(baseSize)}
           onChange={(newValue) => {
             setBaseSize(Number(newValue) as BaseSize);
-            revalidate();
           }}
         >
           <Grid.Dropdown.Section title="Grid Sizes">
@@ -147,7 +151,6 @@ export default function Command() {
                 title={`Switch to ${isMulticolored ? "Monocolored" : "Multicolored"}`}
                 onAction={() => {
                   setIsMulticolored((prev) => !prev);
-                  revalidate();
                 }}
               />
             </ActionPanel>
