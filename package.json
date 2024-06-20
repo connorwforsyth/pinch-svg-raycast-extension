@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "svg-spacing",
-  "title": "SVG Rectangle Spacing",
-  "description": "Generate and copy SVG rectangles for spacing references.",
+  "name": "pinch-svg",
+  "title": "Pinch SVG",
+  "description": "Generate pixel spacing increments and references in a pinch using SVGs.",
   "icon": "extension_icon.png",
   "author": "connorforsyth",
   "categories": [
@@ -11,15 +11,15 @@
   "license": "MIT",
   "commands": [
     {
-      "name": "index",
-      "title": "Create SVG Rectangle",
-      "description": "Create SVG Rectangle based on pixel values.",
+      "name": "grid",
+      "title": "Copy SVG Spacing Increment",
+      "description": "Copy selectable SVGs at different sizes, based on an 8px grid system.",
       "mode": "view"
     },
     {
-      "name": "grid",
-      "title": "Copy SVG Spacing Reference",
-      "description": "Copy selectable SVGs at different sizes, based on an 8px grid system.",
+      "name": "index",
+      "title": "Create SVG Rectangle",
+      "description": "Create SVG Rectangle based on pixel values.",
       "mode": "view"
     }
   ],
